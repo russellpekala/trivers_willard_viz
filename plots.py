@@ -78,8 +78,6 @@ def total_fit_calc(i_vec, mother_cond_vec, delta, first_sex, second_sex):
 
 def argmax_i(const_mom_cond, delta, first_sex, second_sex):
     max_i = max(0, investment_capability(const_mom_cond))
-    # print("inv. cap is", investment_capability(const_mom_cond))
-    # print("max_i is ", max_i)
     if max_i < .01:
         return 0
     precision = .01
@@ -87,46 +85,16 @@ def argmax_i(const_mom_cond, delta, first_sex, second_sex):
     max_i_vec = max_i * np.ones(i_vector.shape)
     const_mom_vec = const_mom_cond * np.ones(i_vector.size)
     total_fit = total_fit_calc(i_vector, const_mom_vec, delta, first_sex, second_sex)
-    # const_mom_vec = const_mom_cond * np.ones(i_vector.size)
-    # fem_fit1 = ff(condition(const_mom_vec, i_vector))
-    # mal_fit1 = fm(condition(const_mom_vec, i_vector))
-    # fem_fit2 = ff(condition(const_mom_vec, np.subtract(max_i_vec, i_vector)))
-    # mal_fit2 = fm(condition(const_mom_vec, np.subtract(max_i_vec, i_vector)))
-
-    # if first_sex == "male" and second_sex == "female": 
-    #     # print("MALE FEMALE ACTIVE")
-    #     total_fit = mal_fit1 + delta * fem_fit2
-    # elif first_sex == "female" and second_sex == "female":
-    #     total_fit = fem_fit1 + delta * fem_fit2
-    # elif first_sex == "male" and second_sex == "male":
-    #     # print("MALE MALE")
-    #     total_fit = mal_fit1 + delta * mal_fit2
-    # print("total fit is " , total_fit)
-    # print("optimal i given condition ", const_mom_cond, " is ", np.argmax(total_fit))
     return np.argmax(total_fit) * max_i / len(i_vector)
 
 #Takes an argument cm and gives the best investment decision given that.  
 def optimal_wrt_cm(cm, delta, first_sex, second_sex):
     output = np.zeros(cm.shape)
-    print("lenth of cm is ", len(cm))
     for entry in range(len(cm)):
         # print(entry)
         # print(cm[0])
         output[entry] = argmax_i(cm[entry], delta, first_sex, second_sex)
     return output
-
-
-def fill_below_intersection(x, S, Z):
-    """
-    fill the region below the intersection of S and Z
-    """
-    #find the intersection point
-    ind = np.nonzero( np.absolute(S-Z)==min(np.absolute(S-Z)))[0]
-    # compute a new curve which we will fill below
-    Y = np.zeros(S.shape, dtype = np.float)
-    Y[:ind] = S[:ind]  # Y is S up to the intersection
-    Y[ind:] = Z[ind:]  # and Z beyond it
-    plt.fill(x, Y, facecolor='blue', alpha=0.5)
 
 
 f, axarr = plt.subplots(3,2)
@@ -172,7 +140,7 @@ ax6.plot(variable_condition_mother, v_mf, color="green")
 ax6.plot(variable_condition_mother, v_ff, color="red")
 ax6.set_ylim([2.78, 3.8])
 
-
+#Get rid of ticks
 ax1.xaxis.set_ticks_position('none') 
 ax2.xaxis.set_ticks_position('none') 
 ax3.xaxis.set_ticks_position('none') 
@@ -186,18 +154,103 @@ ax4.yaxis.set_ticks_position('none')
 ax5.yaxis.set_ticks_position('none') 
 ax6.yaxis.set_ticks_position('none') 
 
-#Hide ticks we don't want to see
+#Hide labels we don't want to see
 plt.setp([a.get_xticklabels() for a in axarr.ravel()], visible=False)
 plt.setp([a.get_yticklabels() for a in axarr.ravel()], visible=False)
+plt.savefig('all_fcns.png')
+plt.close()
+#BEGINNING WORK ON SECOND FIGURE
+
+delta_array = [.9, .7, .5, .3]
+#Male = blue, female = red/pink, mix = black/green.  Dark for high delta
+ff_array = ['#990000', '#ff0000', '#ff8080', '#ffcccc']
+mf_array = ['#2e2e1f', '#5c5c3d', '#999966', '#c2c2a3']
+mm_array = ['#000d33', '#002080', '#0040ff', '#809fff']
+
+for delta in range(len(delta_array)):
+    investment = np.arange(low, high, .1)
+    variable_condition_mother = np.arange(min_c, max_c, .1)
+    condition_mother = const_c * np.ones(investment.shape, dtype = float)
+    constant_delta = delta_array[delta]
+
+    i_star_mm = optimal_wrt_cm(variable_condition_mother, constant_delta, "male", "male")
+    i_star_mf = optimal_wrt_cm(variable_condition_mother, constant_delta, "male", "female")
+    i_star_ff = optimal_wrt_cm(variable_condition_mother, constant_delta, "female", "female")
+
+    #Function that takes investments, a set condition, and gives 
+    v_mm = total_fit_calc(i_star_mm, variable_condition_mother, d, "male", "male")
+    v_mf = total_fit_calc(i_star_mf, variable_condition_mother, d, "male", "female")
+    v_ff = total_fit_calc(i_star_ff, variable_condition_mother, d, "female", "female")
+
+    condition_offspring = condition(condition_mother, investment)
+    fitness_male = fm(condition_offspring)
+    fitness_female = ff(condition_offspring)
+
+    plt.plot(variable_condition_mother, v_mm, mm_array[delta])
+    plt.plot(variable_condition_mother, v_mf, mf_array[delta])
+    plt.plot(variable_condition_mother, v_ff, ff_array[delta])
+a = plt.gca()
+a.set_title('Fitness Payoff By Strategy with Risk \n Level Curves over Variable Condition', fontsize = 10)
+a.set_ylim([2.7,3.5])
+plt.savefig('risk_curves.png')
+plt.close()
+
+Figure 3 work
+x = np.arange(-100, 1.5, .1)
+y1 = 1  - (1/.7) * x
+y2 = 2 - 2 * x 
+zero = 0* x 
+one = np.ones(x.shape)
+point_nine = .9 * one
+plt.plot(x, y1, color = 'green')
+plt.plot(x, y2, color = 'blue')
+plt.plot(x, point_nine, 'r--')
+a = plt.gca()
+a.set_title('Optimal Policy over State Space')
+a.set_xlim([0,1])
+a.set_ylim([0,1])
+a.yaxis.set_ticks_position('none')
+a.xaxis.set_ticks_position('none')
+plt.setp(a.get_xticklabels(), visible = False)
+plt.setp(a.get_yticklabels(), visible = False)
+a.fill_between(x, y1, y2, where=y2 >= y1, facecolor='green', alpha = 0.5, interpolate=True)
+a.fill_between(x, zero, y1, where=y1 >= 0, facecolor='pink', alpha = 0.5, interpolate=True)
+a.fill_between(x, one, y2, where=one >= y2, facecolor='blue', alpha = 0.5, interpolate=True)
+plt.ylabel('Probability of Survival, $\delta$')
+plt.xlabel('Condition of Mother, $c_m$')
+plt.savefig('state_space.png')
+plt.close()
+
+x = np.arange(0, .6, .01)
+line1 = .02 + .3 * x
+line2 = .04 + .28 * x
+curve =  .25 * np.sqrt(x)
+plt.plot(x, line1, 'r')
+plt.plot(x, line2, 'r')
+plt.plot(x, curve, 'black')
+
+plt.axvline(x = .25, color = 'blue', linestyle ='--')
+plt.axvline(x = 0.0080359, color = 'purple', linestyle = '--')
+plt.axvline(x = 0.55308, color = 'purple', linestyle = '--')
+plt.axvline(x = 0.043620, color = 'green', linestyle = '--')
+plt.axvline(x = 0.46786, color = 'green', linestyle = '--')
+
+a = plt.gca()
+a.set_title('Concavity of $c(c_m, i_{jk}^*)$')
+a.yaxis.set_ticks_position('none')
+a.xaxis.set_ticks_position('none')
+plt.setp(a.get_xticklabels(), visible = False)
+plt.setp(a.get_yticklabels(), visible = False)
+plt.ylabel('Offspring Condition, $\delta$')
+plt.xlabel('Condition of Mother, $c_m$')
+plt.savefig('concavity.png')
 plt.show()
 
 
-# x = np.arange(-6, 6, .01)
-# S = boltzman(x, 0, 1)
-# Z = 1-boltzman(x, 0.5, 1)
-# plt.plot(x, S, x, Z, color='red', lw=2)
-# fill_below_intersection(x, S, Z)
-# plt.show()
+
+
+
+
 
 
 
